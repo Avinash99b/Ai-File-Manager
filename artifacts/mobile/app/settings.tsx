@@ -25,8 +25,7 @@ import {
   type AppTheme,
   type BackupFrequency,
 } from "@/context/SettingsContext";
-import { useIndexDirectory } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { PermissionService, type PermissionStatus } from "@/services/PermissionService";
 
 type MIcon = React.ComponentProps<typeof MaterialIcons>["name"];
 

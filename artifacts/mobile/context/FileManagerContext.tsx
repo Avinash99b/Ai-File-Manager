@@ -1,70 +1,157 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import { Platform } from "react-native";
+import { DeviceFileService, type DeviceFile, getStorageRoot } from "@/services/DeviceFileService";
+import { PermissionService, type PermissionStatus } from "@/services/PermissionService";
 
-interface FileManagerState {
+interface FileManagerContextType {
   currentPath: string;
-  selectedFiles: string[];
-  searchQuery: string;
-  isIndexed: boolean;
-}
-
-interface FileManagerContextType extends FileManagerState {
+  files: DeviceFile[];
+  isLoading: boolean;
+  error: string | null;
+  permissionStatus: PermissionStatus;
+  storageRoot: string;
+  canGoBack: boolean;
   navigateTo: (path: string) => void;
-  selectFile: (path: string) => void;
-  deselectFile: (path: string) => void;
-  clearSelection: () => void;
-  setSearchQuery: (q: string) => void;
-  setIsIndexed: (v: boolean) => void;
   goBack: () => void;
+  refresh: () => void;
+  checkPermission: () => void;
+  requestPermission: () => void;
 }
 
 const FileManagerContext = createContext<FileManagerContextType | null>(null);
 
 export function FileManagerProvider({ children }: { children: React.ReactNode }) {
-  const [currentPath, setCurrentPath] = useState("/");
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isIndexed, setIsIndexed] = useState(false);
-  const [history, setHistory] = useState<string[]>([]);
+  const storageRoot = getStorageRoot();
+  const [currentPath, setCurrentPath] = useState(storageRoot);
+  const [files, setFiles] = useState<DeviceFile[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [permissionStatus, setPermissionStatus] = useState<PermissionStatus>("checking");
+  const [canGoBack, setCanGoBack] = useState(false);
+  const historyRef = useRef<string[]>([]);
+  const mountedRef = useRef(true);
 
-  const navigateTo = useCallback((path: string) => {
-    setHistory((prev) => [...prev, currentPath]);
-    setCurrentPath(path);
-    setSelectedFiles([]);
-  }, [currentPath]);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  const loadFiles = useCallback(async (path: string) => {
+    if (Platform.OS === "web") {
+      if (mountedRef.current) {
+        setPermissionStatus("denied");
+        setFiles([]);
+        setError("Install the Android APK to browse device files. Web cannot access local storage.");
+        setIsLoading(false);
+      }
+      return;
+    }
+    if (mountedRef.current) {
+      setIsLoading(true);
+      setError(null);
+    }
+    try {
+      const items = await DeviceFileService.listDir(path);
+      if (mountedRef.current) {
+        setFiles(items);
+        setPermissionStatus("granted");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const isPermission =
+        msg.includes("Permission") ||
+        msg.includes("EACCES") ||
+        msg.includes("EPERM") ||
+        msg.includes("access denied");
+      if (mountedRef.current) {
+        if (isPermission) {
+          setPermissionStatus("denied");
+          setError(null);
+        } else {
+          setError(`Cannot read directory: ${msg}`);
+        }
+        setFiles([]);
+      }
+    } finally {
+      if (mountedRef.current) setIsLoading(false);
+    }
+  }, []);
+
+  const checkPermission = useCallback(() => {
+    setPermissionStatus("checking");
+    PermissionService.checkStoragePermission().then((status) => {
+      if (!mountedRef.current) return;
+      setPermissionStatus(status);
+      if (status === "granted") {
+        loadFiles(currentPath);
+      } else {
+        setFiles([]);
+        setIsLoading(false);
+      }
+    });
+  }, [currentPath, loadFiles]);
+
+  useEffect(() => {
+    checkPermission();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const navigateTo = useCallback(
+    (path: string) => {
+      historyRef.current = [...historyRef.current, currentPath];
+      setCanGoBack(true);
+      setCurrentPath(path);
+      loadFiles(path);
+    },
+    [currentPath, loadFiles],
+  );
 
   const goBack = useCallback(() => {
-    const prev = history[history.length - 1];
+    const prev = historyRef.current[historyRef.current.length - 1];
     if (prev !== undefined) {
-      setHistory((h) => h.slice(0, -1));
+      historyRef.current = historyRef.current.slice(0, -1);
+      setCanGoBack(historyRef.current.length > 0);
       setCurrentPath(prev);
-      setSelectedFiles([]);
+      loadFiles(prev);
     }
-  }, [history]);
+  }, [loadFiles]);
 
-  const selectFile = useCallback((path: string) => {
-    setSelectedFiles((prev) => (prev.includes(path) ? prev : [...prev, path]));
-  }, []);
+  const refresh = useCallback(() => {
+    loadFiles(currentPath);
+  }, [currentPath, loadFiles]);
 
-  const deselectFile = useCallback((path: string) => {
-    setSelectedFiles((prev) => prev.filter((p) => p !== path));
-  }, []);
-
-  const clearSelection = useCallback(() => setSelectedFiles([]), []);
+  const requestPermission = useCallback(() => {
+    PermissionService.requestStoragePermission().then((status) => {
+      if (!mountedRef.current) return;
+      setPermissionStatus(status);
+      if (status === "granted") {
+        loadFiles(currentPath);
+      } else if (status === "undetermined") {
+        setTimeout(() => {
+          PermissionService.checkStoragePermission().then((recheckStatus) => {
+            if (!mountedRef.current) return;
+            setPermissionStatus(recheckStatus);
+            if (recheckStatus === "granted") loadFiles(currentPath);
+          });
+        }, 2000);
+      }
+    });
+  }, [currentPath, loadFiles]);
 
   return (
     <FileManagerContext.Provider
       value={{
         currentPath,
-        selectedFiles,
-        searchQuery,
-        isIndexed,
+        files,
+        isLoading,
+        error,
+        permissionStatus,
+        storageRoot,
+        canGoBack,
         navigateTo,
         goBack,
-        selectFile,
-        deselectFile,
-        clearSelection,
-        setSearchQuery,
-        setIsIndexed,
+        refresh,
+        checkPermission,
+        requestPermission,
       }}
     >
       {children}
