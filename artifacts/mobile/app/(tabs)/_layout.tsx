@@ -3,9 +3,9 @@ import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
-import { Feather } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { useColors } from "@/hooks/useColors";
 
 function NativeTabLayout() {
@@ -24,8 +24,8 @@ function NativeTabLayout() {
         <Label>Actions</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="snapshots">
-        <Icon sf={{ default: "clock.arrow.circlepath", selected: "clock.arrow.circlepath" }} />
-        <Label>Snapshots</Label>
+        <Icon sf={{ default: "arrow.counterclockwise.circle.fill", selected: "arrow.counterclockwise.circle.fill" }} />
+        <Label>Backups</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -33,8 +33,6 @@ function NativeTabLayout() {
 
 function ClassicTabLayout() {
   const colors = useColors();
-  const colorScheme = useColorScheme();
-  const isDark = true;
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
@@ -54,7 +52,7 @@ function ClassicTabLayout() {
         },
         tabBarBackground: () =>
           isIOS ? (
-            <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
+            <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
           ) : isWeb ? (
             <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.card }]} />
           ) : null,
@@ -68,7 +66,7 @@ function ClassicTabLayout() {
             isIOS ? (
               <SymbolView name="folder.fill" tintColor={color} size={22} />
             ) : (
-              <Feather name="folder" size={20} color={color} />
+              <MaterialIcons name="folder" size={24} color={color} />
             ),
         }}
       />
@@ -80,7 +78,7 @@ function ClassicTabLayout() {
             isIOS ? (
               <SymbolView name="magnifyingglass" tintColor={color} size={22} />
             ) : (
-              <Feather name="search" size={20} color={color} />
+              <MaterialIcons name="search" size={24} color={color} />
             ),
         }}
       />
@@ -92,19 +90,19 @@ function ClassicTabLayout() {
             isIOS ? (
               <SymbolView name="bolt.fill" tintColor={color} size={22} />
             ) : (
-              <Feather name="zap" size={20} color={color} />
+              <MaterialIcons name="bolt" size={24} color={color} />
             ),
         }}
       />
       <Tabs.Screen
         name="snapshots"
         options={{
-          title: "Snapshots",
+          title: "Backups",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="clock.arrow.circlepath" tintColor={color} size={22} />
+              <SymbolView name="arrow.counterclockwise.circle.fill" tintColor={color} size={22} />
             ) : (
-              <Feather name="archive" size={20} color={color} />
+              <MaterialIcons name="backup" size={24} color={color} />
             ),
         }}
       />

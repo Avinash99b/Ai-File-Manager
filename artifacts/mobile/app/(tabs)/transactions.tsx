@@ -1,15 +1,10 @@
+import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-  Platform,
-  RefreshControl,
+  ActivityIndicator, FlatList, Platform, RefreshControl,
+  StyleSheet, Text, View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import { TransactionCard } from "@/components/TransactionCard";
 import { useListTransactions } from "@workspace/api-client-react";
@@ -19,33 +14,30 @@ export default function TransactionsScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
 
-  const { data, isLoading, refetch, isRefetching } = useListTransactions(
-    { query: { refetchInterval: 5000 } },
-  );
-
+  const { data, isLoading, refetch, isRefetching } = useListTransactions({ query: { refetchInterval: 6000 } });
   const transactions = data?.transactions ?? [];
+
+  const LEGEND = [
+    { color: colors.success, label: "Completed" },
+    { color: colors.primary, label: "Pending" },
+    { color: colors.warning, label: "Previewed" },
+    { color: colors.danger, label: "Rejected" },
+  ];
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: topInset + 12,
-            backgroundColor: colors.card,
-            borderBottomColor: colors.border,
-          },
-        ]}
-      >
+      <View style={[styles.header, { paddingTop: topInset + 10, backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={styles.headerRow}>
-          <Feather name="zap" size={20} color={colors.primary} />
+          <View style={[styles.iconBox, { backgroundColor: colors.primary + "22" }]}>
+            <MaterialIcons name="bolt" size={22} color={colors.primary} />
+          </View>
           <Text style={[styles.title, { color: colors.foreground }]}>Action Log</Text>
-          <View style={[styles.countBadge, { backgroundColor: colors.secondary }]}>
-            <Text style={[styles.countText, { color: colors.mutedForeground }]}>{transactions.length}</Text>
+          <View style={[styles.badge, { backgroundColor: colors.primary + "22" }]}>
+            <Text style={[styles.badgeText, { color: colors.primary }]}>{transactions.length}</Text>
           </View>
         </View>
         <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-          Review, approve, and manage file transactions
+          Review, approve, and track all file operations
         </Text>
       </View>
 
@@ -55,10 +47,12 @@ export default function TransactionsScreen() {
         </View>
       ) : transactions.length === 0 ? (
         <View style={styles.center}>
-          <Feather name="zap" size={48} color={colors.mutedForeground} />
+          <View style={[styles.emptyIcon, { backgroundColor: colors.primary + "18" }]}>
+            <MaterialIcons name="bolt" size={48} color={colors.primary} />
+          </View>
           <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No actions yet</Text>
           <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>
-            Use the AI command bar on the Files tab to perform operations
+            Use the AI command bar on the Files tab to perform file operations
           </Text>
         </View>
       ) : (
@@ -75,34 +69,18 @@ export default function TransactionsScreen() {
               actionsCount={item.actions.length}
             />
           )}
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingTop: 12,
-            paddingBottom: (Platform.OS === "web" ? 84 : insets.bottom + 60) + 12,
-          }}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={refetch}
-              tintColor={colors.primary}
-            />
-          }
           ListHeaderComponent={
-            <View style={[styles.legendRow]}>
-              <View style={styles.legendItem}>
-                <View style={[styles.dot, { backgroundColor: colors.success }]} />
-                <Text style={[styles.legendText, { color: colors.mutedForeground }]}>Completed</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.dot, { backgroundColor: colors.warning }]} />
-                <Text style={[styles.legendText, { color: colors.mutedForeground }]}>Pending</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.dot, { backgroundColor: colors.danger }]} />
-                <Text style={[styles.legendText, { color: colors.mutedForeground }]}>Rejected</Text>
-              </View>
+            <View style={styles.legendRow}>
+              {LEGEND.map((l) => (
+                <View key={l.label} style={styles.legendItem}>
+                  <View style={[styles.dot, { backgroundColor: l.color }]} />
+                  <Text style={[styles.legendText, { color: colors.mutedForeground }]}>{l.label}</Text>
+                </View>
+              ))}
             </View>
           }
+          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: (Platform.OS === "web" ? 84 : insets.bottom + 60) + 12 }}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} />}
         />
       )}
     </View>
@@ -111,71 +89,19 @@ export default function TransactionsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    gap: 4,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  title: {
-    flex: 1,
-    fontSize: 20,
-    fontFamily: "Inter_700Bold",
-  },
-  countBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  countText: {
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-  },
-  subtitle: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginLeft: 30,
-  },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontFamily: "Inter_600SemiBold",
-    marginTop: 8,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  legendRow: {
-    flexDirection: "row",
-    gap: 14,
-    marginBottom: 12,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-  },
-  legendText: {
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-  },
+  header: { paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth, gap: 4 },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  iconBox: { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  title: { flex: 1, fontSize: 20, fontFamily: "Inter_700Bold" },
+  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+  badgeText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  subtitle: { fontSize: 12, fontFamily: "Inter_400Regular", marginLeft: 48 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingHorizontal: 32 },
+  emptyIcon: { width: 88, height: 88, borderRadius: 24, alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  emptyTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold" },
+  emptySubtitle: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
+  legendRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginBottom: 12 },
+  legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 11, fontFamily: "Inter_400Regular" },
 });

@@ -54,5 +54,10 @@
     "typescript": "~5.9.2",
     "zod": "catalog:",
     "zod-validation-error": "^3.4.0"
+  },
+  "dependencies": {
+    "@react-native-community/slider": "^5.2.0",
+    "expo-media-library": "^56.0.7",
+    "expo-secure-store": "^56.0.4"
   }
 }

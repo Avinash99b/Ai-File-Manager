@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { parseCommand } from "../lib/aiparser";
+import { parseCommandAsync, type LLMConfig } from "../lib/aiparser";
 import {
   createTransaction,
   setupTmpDir,
@@ -9,11 +9,15 @@ import {
 
 const router = Router();
 
-router.post("/actions/parse", (req, res) => {
-  const { command, contextPath } = req.body as { command: string; contextPath?: string };
+router.post("/actions/parse", async (req, res) => {
+  const { command, contextPath, llmConfig } = req.body as {
+    command: string;
+    contextPath?: string;
+    llmConfig?: LLMConfig;
+  };
   if (!command) return res.status(400).json({ error: "command is required" });
 
-  const plan = parseCommand(command, contextPath);
+  const plan = await parseCommandAsync(command, llmConfig, contextPath);
   createTransaction(plan.transactionId, command, plan.actionsSummary, plan.actions);
 
   return res.json(plan);

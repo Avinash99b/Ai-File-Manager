@@ -3,6 +3,150 @@ import path from "path";
 import { filesDir } from "./database";
 import { logger } from "./logger";
 
+export interface LLMConfig {
+  provider: "openai" | "anthropic" | "gemini" | "ollama" | "custom";
+  model: string;
+  apiKey: string;
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  customEndpoint?: string;
+}
+
+const LLM_SYSTEM_PROMPT = `You are an AI file manager assistant. Parse the user's natural language command into a structured JSON action plan for file operations.
+
+Return ONLY valid JSON (no markdown fences, no explanation) in this exact format:
+{
+  "transactionId": "auto",
+  "actionsSummary": "Brief description of all changes",
+  "actions": [
+    {
+      "id": "unique_id_1",
+      "action": "rename",
+      "mode": "file_name",
+      "target": "relative/path/to/file.txt",
+      "params": {"replacement": "new_name.txt"},
+      "isSafe": false
+    }
+  ],
+  "requiresCode": false,
+  "hasRiskyActions": true,
+  "estimatedTimeMs": 150
+}
+
+Rules:
+- action must be one of: rename, delete, move, copy, create, code_execute
+- mode: file_name | regex | pattern | code
+- target: relative path from managed root (e.g. "notes.txt" or "archive/old.txt")
+- params.replacement: new filename for rename
+- params.dest: destination directory for move/copy
+- params.content: file content for create
+- isSafe: true ONLY for copy and create; false for rename/delete/move/code_execute
+- hasRiskyActions: true if any action has isSafe=false
+- Generate one action per matching file for glob/pattern commands
+- For complex operations not expressible as above, use code_execute with params.code`;
+
+async function callLLM(command: string, files: string[], config: LLMConfig): Promise<ActionPlan> {
+  const transactionId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const systemPrompt = LLM_SYSTEM_PROMPT + `\n\nAvailable files: ${files.slice(0, 60).join(", ")}`;
+
+  let url: string;
+  let headers: Record<string, string>;
+  let bodyObj: unknown;
+
+  if (config.provider === "openai" || config.provider === "custom") {
+    url = config.customEndpoint || "https://api.openai.com/v1/chat/completions";
+    headers = { "Content-Type": "application/json", Authorization: `Bearer ${config.apiKey}` };
+    bodyObj = {
+      model: config.model || "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: command },
+      ],
+      temperature: config.temperature ?? 0.3,
+      max_tokens: config.maxTokens ?? 1024,
+      top_p: config.topP ?? 1.0,
+    };
+  } else if (config.provider === "anthropic") {
+    url = "https://api.anthropic.com/v1/messages";
+    headers = { "Content-Type": "application/json", "x-api-key": config.apiKey, "anthropic-version": "2023-06-01" };
+    bodyObj = {
+      model: config.model || "claude-3-5-sonnet-20241022",
+      max_tokens: config.maxTokens ?? 1024,
+      system: systemPrompt,
+      messages: [{ role: "user", content: command }],
+    };
+  } else if (config.provider === "gemini") {
+    url = `https://generativelanguage.googleapis.com/v1beta/models/${config.model || "gemini-2.0-flash-lite"}:generateContent?key=${config.apiKey}`;
+    headers = { "Content-Type": "application/json" };
+    bodyObj = {
+      contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\nUser command: ${command}` }] }],
+      generationConfig: { temperature: config.temperature ?? 0.3, maxOutputTokens: config.maxTokens ?? 1024 },
+    };
+  } else {
+    url = (config.customEndpoint || "http://localhost:11434") + "/api/chat";
+    headers = { "Content-Type": "application/json" };
+    bodyObj = {
+      model: config.model || "llama3.2",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: command },
+      ],
+      stream: false,
+    };
+  }
+
+  const response = await fetch(url, { method: "POST", headers, body: JSON.stringify(bodyObj) });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`LLM API ${response.status}: ${text.slice(0, 200)}`);
+  }
+
+  const data = await response.json() as Record<string, unknown>;
+
+  let text: string;
+  if (config.provider === "anthropic") {
+    const content = data.content as Array<{ type: string; text: string }>;
+    text = content[0]?.text ?? "";
+  } else if (config.provider === "gemini") {
+    const candidates = data.candidates as Array<{ content: { parts: Array<{ text: string }> } }>;
+    text = candidates[0]?.content?.parts[0]?.text ?? "";
+  } else if (config.provider === "ollama") {
+    const msg = data.message as { content: string };
+    text = msg?.content ?? "";
+  } else {
+    const choices = data.choices as Array<{ message: { content: string } }>;
+    text = choices[0]?.message?.content ?? "";
+  }
+
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("LLM response did not contain valid JSON");
+
+  const parsed = JSON.parse(jsonMatch[0]) as ActionPlan;
+  return {
+    ...parsed,
+    transactionId,
+    actions: parsed.actions.map((a) => ({
+      ...a,
+      id: a.id || genId(),
+    })),
+  };
+}
+
+export async function parseCommandAsync(command: string, llmConfig?: LLMConfig, contextPath?: string): Promise<ActionPlan> {
+  if (llmConfig?.apiKey) {
+    const files = listFilesFlat(contextPath ?? filesDir);
+    try {
+      const result = await callLLM(command, files, llmConfig);
+      logger.info({ provider: llmConfig.provider, model: llmConfig.model, actionsCount: result.actions.length }, "LLM parsed command");
+      return result;
+    } catch (err) {
+      logger.warn({ err }, "LLM parsing failed, falling back to rule-based parser");
+    }
+  }
+  return parseCommand(command, contextPath);
+}
+
 export interface Action {
   id: string;
   action: "rename" | "delete" | "move" | "copy" | "create" | "code_execute";

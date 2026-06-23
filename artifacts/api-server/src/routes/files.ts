@@ -139,4 +139,18 @@ router.post("/files/index", (req, res) => {
   return res.json({ status: "indexed", filesIndexed });
 });
 
+router.post("/files/write", (req, res) => {
+  const { path: filePath, content } = req.body as { path: string; content: string };
+  if (!filePath) return res.status(400).json({ error: "path is required" });
+  if (content === undefined) return res.status(400).json({ error: "content is required" });
+
+  const full = path.join(filesDir, filePath);
+  if (!full.startsWith(filesDir)) return res.status(400).json({ error: "Path traversal not allowed" });
+
+  fs.mkdirSync(path.dirname(full), { recursive: true });
+  fs.writeFileSync(full, content, "utf-8");
+
+  return res.json({ status: "written", path: filePath, size: Buffer.byteLength(content, "utf-8") });
+});
+
 export default router;
