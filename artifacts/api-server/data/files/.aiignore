@@ -1,0 +1,6 @@
+# AI File Manager ignore file
+# Syntax follows .gitignore rules
+
+*.tmp
+*.swp
+.DS_Store

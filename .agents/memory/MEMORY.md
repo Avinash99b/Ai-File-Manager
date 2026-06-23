@@ -1,0 +1,2 @@
+- [node-sqlite-vs-better-sqlite3](node-sqlite-vs-better-sqlite3.md) — use node:sqlite (built-in Node 24) instead of better-sqlite3 to avoid native binding compilation failures
+- [orval-zod-index-fix](orval-zod-index-fix.md) — codegen always regenerates api-zod/src/index.ts with two lines; must overwrite to single-line after every codegen run

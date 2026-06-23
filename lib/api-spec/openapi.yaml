@@ -3,20 +3,29 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: AI File Manager API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: files
+    description: File browser and search
+  - name: actions
+    description: AI action parser
+  - name: transactions
+    description: Transaction management
+  - name: snapshots
+    description: Snapshot management
+  - name: code
+    description: Sandboxed code execution
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +33,329 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /files/list:
+    get:
+      operationId: listFiles
+      tags: [files]
+      summary: List files in a directory
+      parameters:
+        - name: path
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "/"
+      responses:
+        "200":
+          description: File listing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  files:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FileItem"
+                  currentPath:
+                    type: string
+                required: [files, currentPath]
+
+  /files/content:
+    get:
+      operationId: getFileContent
+      tags: [files]
+      summary: Get file content
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File content
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: string
+                  path:
+                    type: string
+                  size:
+                    type: number
+                  mimeType:
+                    type: string
+                required: [content, path, size, mimeType]
+
+  /files/search:
+    post:
+      operationId: searchFiles
+      tags: [files]
+      summary: Search files by name or semantic content
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchRequest"
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SearchResult"
+                  query:
+                    type: string
+                  mode:
+                    type: string
+                required: [results, query, mode]
+
+  /files/index:
+    post:
+      operationId: indexDirectory
+      tags: [files]
+      summary: Index a directory for search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                path:
+                  type: string
+              required: [path]
+      responses:
+        "200":
+          description: Indexing started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  filesIndexed:
+                    type: number
+                required: [status, filesIndexed]
+
+  /actions/parse:
+    post:
+      operationId: parseAction
+      tags: [actions]
+      summary: Parse a natural language command into an action plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                command:
+                  type: string
+                contextPath:
+                  type: string
+              required: [command]
+      responses:
+        "200":
+          description: Action plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionPlan"
+
+  /actions/preview:
+    post:
+      operationId: previewActions
+      tags: [actions]
+      summary: Preview actions in a tmp directory (non-destructive)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transactionId:
+                  type: string
+                actions:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Action"
+              required: [transactionId, actions]
+      responses:
+        "200":
+          description: Preview result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreviewResult"
+
+  /transactions:
+    get:
+      operationId: listTransactions
+      tags: [transactions]
+      summary: List all transactions
+      responses:
+        "200":
+          description: Transaction list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Transaction"
+                required: [transactions]
+
+  /transactions/{id}:
+    get:
+      operationId: getTransaction
+      tags: [transactions]
+      summary: Get a transaction by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+
+  /transactions/{id}/approve:
+    post:
+      operationId: approveTransaction
+      tags: [transactions]
+      summary: Approve and commit a transaction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Approval result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  snapshotId:
+                    type: string
+                required: [status]
+
+  /transactions/{id}/reject:
+    post:
+      operationId: rejectTransaction
+      tags: [transactions]
+      summary: Reject a transaction and clean up tmp
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Rejection result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                required: [status]
+
+  /snapshots:
+    get:
+      operationId: listSnapshots
+      tags: [snapshots]
+      summary: List all snapshots
+      responses:
+        "200":
+          description: Snapshot list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  snapshots:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Snapshot"
+                required: [snapshots]
+
+  /snapshots/{id}/restore:
+    post:
+      operationId: restoreSnapshot
+      tags: [snapshots]
+      summary: Restore files from a snapshot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Restore result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  filesRestored:
+                    type: number
+                required: [status, filesRestored]
+
+  /code/execute:
+    post:
+      operationId: executeCode
+      tags: [code]
+      summary: Execute sandboxed Node.js code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                transactionId:
+                  type: string
+              required: [code, transactionId]
+      responses:
+        "200":
+          description: Execution result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodeExecutionResult"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +363,201 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    FileItem:
+      type: object
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        type:
+          type: string
+          enum: [file, directory]
+        size:
+          type: number
+        modifiedAt:
+          type: string
+        mimeType:
+          type: string
+        isIndexed:
+          type: boolean
+      required: [name, path, type, size, modifiedAt]
+
+    SearchRequest:
+      type: object
+      properties:
+        query:
+          type: string
+        mode:
+          type: string
+          enum: [semantic, filename, both]
+          default: both
+        path:
+          type: string
+        limit:
+          type: number
+          default: 20
+      required: [query]
+
+    SearchResult:
+      type: object
+      properties:
+        file:
+          $ref: "#/components/schemas/FileItem"
+        score:
+          type: number
+        matchType:
+          type: string
+          enum: [semantic, filename, both]
+        snippet:
+          type: string
+      required: [file, score, matchType]
+
+    Action:
+      type: object
+      properties:
+        id:
+          type: string
+        action:
+          type: string
+          enum: [rename, delete, move, copy, create, code_execute]
+        mode:
+          type: string
+          enum: [file_name, regex, pattern, code]
+        target:
+          type: string
+        params:
+          type: object
+          properties:
+            replacement:
+              type: string
+            dest:
+              type: string
+            code:
+              type: string
+            content:
+              type: string
+          additionalProperties: true
+        isSafe:
+          type: boolean
+        reverseAction:
+          type: object
+          additionalProperties: true
+      required: [id, action, mode, target, isSafe]
+
+    ActionPlan:
+      type: object
+      properties:
+        transactionId:
+          type: string
+        actionsSummary:
+          type: string
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Action"
+        requiresCode:
+          type: boolean
+        hasRiskyActions:
+          type: boolean
+        estimatedTimeMs:
+          type: number
+      required: [transactionId, actionsSummary, actions, requiresCode, hasRiskyActions]
+
+    PreviewResult:
+      type: object
+      properties:
+        transactionId:
+          type: string
+        status:
+          type: string
+        previewFiles:
+          type: array
+          items:
+            type: object
+            properties:
+              before:
+                type: string
+              after:
+                type: string
+              action:
+                type: string
+            required: [action]
+        errors:
+          type: array
+          items:
+            type: string
+      required: [transactionId, status, previewFiles]
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        status:
+          type: string
+          enum: [pending, previewed, approved, rejected, completed, failed]
+        command:
+          type: string
+        actionsSummary:
+          type: string
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Action"
+        snapshotId:
+          type: string
+        tmpPath:
+          type: string
+        completedActions:
+          type: array
+          items:
+            type: string
+      required: [id, createdAt, updatedAt, status, command, actionsSummary, actions]
+
+    Snapshot:
+      type: object
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+        transactionId:
+          type: string
+        affectedFiles:
+          type: array
+          items:
+            type: string
+        location:
+          type: string
+          enum: [local, drive]
+        sizeMb:
+          type: number
+        checksum:
+          type: string
+        restorable:
+          type: boolean
+      required: [id, timestamp, transactionId, affectedFiles, location, sizeMb, restorable]
+
+    CodeExecutionResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        output:
+          type: string
+        error:
+          type: string
+        filesCreated:
+          type: array
+          items:
+            type: string
+        executionTimeMs:
+          type: number
+      required: [success, output, executionTimeMs]
