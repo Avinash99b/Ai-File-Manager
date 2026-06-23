@@ -1,0 +1,268 @@
+# AI LLM Augmented File Manager - Full Project Context & Issues
+
+## PROJECT OVERVIEW
+
+**Purpose:** React Native app (Expo) for semantic file search with AI-powered action parsing and transaction-based file operations.
+
+**Core Features:**
+1. Semantic search by filename + file contents (embedded vectors, instant local results)
+2. AI action parser: natural language → structured action plans
+3. Transaction-based operations (all changes in tmp, approval required)
+4. Snapshot & backup system (local + Google Drive abstraction)
+5. .aiignore support (git-style nested ignore rules)
+6. Sandboxed Node.js code execution for complex actions
+
+**Tech Stack:**
+- Frontend: React Native (Expo)
+- Backend: Node.js
+- Database: SQLite (local)
+- Embeddings: Local embedding model (Xenova/transformers.js or similar)
+- Code Execution: Sandboxed Node.js (vm2/isolated-vm)
+- Storage: Local filesystem + Google Drive abstraction (not yet implemented)
+
+---
+
+## CURRENT STATUS
+
+The project has been partially completed by an AI. The app is **functional on web** but has several **critical issues on Android (Expo Go)** and **missing features** that need to be fixed and finalized.
+
+---
+
+## KNOWN ISSUES TO FIX
+
+### 1. **Three-Dot Menu Icon Not Working in File Display**
+- **Location:** File browser/file list section
+- **Issue:** 3-dot (context menu) icon does not respond to taps/clicks
+- **Expected Behavior:** Tapping 3-dot should open menu with options (copy, move, delete, rename, etc.)
+- **Priority:** HIGH
+- **Status:** Not implemented / broken
+
+### 2. **.aiignore Rules Section Displays "[Binary file - cannot display]"**
+- **Location:** .aiignore management/configuration section
+- **Issue:** When displaying .aiignore file contents or rules, shows binary file error instead of readable text
+- **Expected Behavior:** Should parse and display .aiignore rules in a user-friendly format (list of patterns, nested structure)
+- **Root Cause:** Likely attempting to read binary files or wrong file type detection
+- **Priority:** HIGH
+- **Status:** Partially implemented, buggy
+
+### 3. **Unwanted Default /files Section Displaying**
+- **Location:** Main file browser
+- **Issue:** App shows a default `/files` directory/section that shouldn't be visible to user
+- **Expected Behavior:** Should only show the actual file system root or user-selected directory
+- **Priority:** MEDIUM
+- **Status:** Unknown implementation detail, needs investigation
+
+### 4. **Permission Handling Issues on Android (Expo Go)**
+- **Issue:** App constantly requests storage access and file permissions on Android, even after granting
+- **Works Fine On:** Web (no permission issues)
+- **Problem:** 
+  - Not gracefully handling permission status checks
+  - Not properly integrating with Expo's permission APIs (expo-file-system, expo-permissions)
+  - Likely missing proper permission lifecycle management
+- **Expected Behavior:**
+  - Check permission status at app startup
+  - Request only necessary permissions once
+  - Handle denied permissions gracefully (show user-friendly message)
+  - Cache permission status to avoid repeated requests
+  - Work smoothly with Expo Go during development
+- **Priority:** CRITICAL (blocks Android testing)
+- **Status:** Not properly implemented
+
+### 5. **Transaction Revert/Undo Not Implemented**
+- **Location:** Action Log / Transaction History section
+- **Issue:** Users cannot revert/undo completed transactions
+- **Expected Behavior:**
+  - Each transaction should be reversible
+  - User should see "Undo Transaction" or "Revert" button in transaction history
+  - Clicking undo should restore files from snapshot
+  - Should work for individual actions within a transaction as well
+- **Implementation Required:**
+  - Store reverse actions for each transaction
+  - Link transactions to snapshots
+  - Implement revert logic (restore from snapshot or play reverse actions)
+  - Add UI button to trigger revert
+- **Priority:** CRITICAL (core feature)
+- **Status:** Not implemented
+
+---
+
+## WHAT NEEDS TO HAPPEN NOW
+
+### Phase 1: Audit & Investigation (BEFORE CODING)
+1. **Review current codebase structure** - identify all files and their purposes
+2. **Identify root causes** of each issue listed above
+3. **Check permission implementation** - what's currently in place for Expo
+4. **Verify database schema** - ensure transactions & snapshots are properly tracked
+5. **Test file menu** - determine why 3-dot menu isn't working
+6. **Check .aiignore parser** - why it's treating files as binary
+7. **Locate /files section** - find where default /files is hardcoded
+
+### Phase 2: Fix & Implement
+1. **Permission System (Expo-compliant)**
+   - Implement `expo-file-system` and `expo-permissions` properly
+   - Add permission request flow at app startup
+   - Handle denied permissions with fallback
+   - Cache permission status in AsyncStorage
+   - Test thoroughly on Expo Go Android
+
+2. **File Menu (3-dot Icon)**
+   - Debug event handler for 3-dot button
+   - Ensure proper touch/tap detection on React Native
+   - Implement context menu (or action sheet) with file operations
+   - Test on both web and Android
+
+3. **.aiignore Display**
+   - Fix file reading to handle text files correctly
+   - Implement proper .aiignore parser (text-based, not binary)
+   - Display rules in user-friendly format (list of patterns, visual hierarchy for nesting)
+   - Add inline editing capability for .aiignore files
+
+4. **Remove Default /files Section**
+   - Identify hardcoded path
+   - Replace with proper root directory or user-selected directory
+   - Verify file browser only shows valid paths
+
+5. **Transaction Revert/Undo**
+   - Implement reverse action generation for each action type
+   - Link each transaction to its snapshot
+   - Add revert button in transaction history UI
+   - Implement restore logic (restore snapshot or execute reverse actions)
+   - Handle partial reverts (undo individual actions)
+   - Add confirmation dialog before revert
+   - Test revert on actual file operations
+
+### Phase 3: Final Verification & Delivery
+1. **Testing Checklist:**
+   - [ ] Permissions: Android Expo Go (fresh install, cold start, hot reload)
+   - [ ] Permissions: Web (no unwanted prompts)
+   - [ ] File Menu: Click 3-dot on multiple file types
+   - [ ] .aiignore: Display rules correctly (no binary errors)
+   - [ ] File Browser: No default /files visible
+   - [ ] Search: Semantic search works on local index
+   - [ ] Action Parser: Generate correct action plans
+   - [ ] Approval Flow: Can approve/reject actions
+   - [ ] Snapshots: Created before transactions
+   - [ ] Undo: Can revert any completed transaction
+   - [ ] Cloud Abstraction: Storage layer is abstract-ready (even if Drive not implemented)
+
+2. **Code Quality:**
+   - All functions documented with JSDoc
+   - Error handling on all major operations
+   - Proper logging for debugging
+   - No console warnings in Expo Go
+
+3. **Documentation:**
+   - Updated README with known issues & workarounds
+   - Setup instructions for development (Node.js + Expo Go)
+   - Permission requirements documented
+   - Known limitations listed
+
+---
+
+## KEY ARCHITECTURAL NOTES
+
+### Permission Handling (Critical for Expo)
+- Use `expo-file-system` for file access (not direct fs)
+- Use `expo-permissions` for requesting permissions
+- On Android, request `READ_EXTERNAL_STORAGE` + `WRITE_EXTERNAL_STORAGE`
+- Handle permission status: `GRANTED`, `DENIED`, `UNDETERMINED`
+- Cache status to AsyncStorage to avoid repeated requests
+- Graceful fallback if permissions denied (limit to app's document directory)
+
+### Transaction Revert Flow
+```
+User clicks "Undo Transaction" 
+  → System checks linked snapshot exists
+  → Show confirmation with affected files list
+  → If confirmed: restore files from snapshot OR execute reverse actions
+  → Mark transaction as "reverted"
+  → Update transaction log
+  → Show success message
+```
+
+### .aiignore Parser
+- Should read as TEXT file (not binary)
+- Parse line by line
+- Support comments (#) and empty lines
+- Support negation patterns (!)
+- Display in hierarchical tree (show nesting)
+- Allow inline editing
+
+### File Menu Requirements
+- On React Native, use `expo-file-system` for file ops
+- Menu should appear as ActionSheetIOS (iOS) or custom modal (Android/Web)
+- Options: Copy, Move, Delete, Rename, Properties, Open
+- Disable dangerous ops if transaction in progress
+
+---
+
+## DELIVERABLES (FINAL)
+
+1. **Complete, production-ready React Native app**
+   - All issues fixed
+   - All features working
+   - Permission system robust
+   - Proper error handling
+
+2. **Updated codebase with:**
+   - Clear comments explaining permission flow
+   - Transaction revert logic fully implemented
+   - File menu properly working
+   - .aiignore parser functional
+   - No hardcoded paths
+
+3. **Setup & Testing Documentation**
+   - How to run on Expo Go (Android/iOS/Web)
+   - Permission behavior documented
+   - Known limitations clearly stated
+   - Troubleshooting guide
+
+4. **QA Sign-Off:**
+   - All 5 issues resolved
+   - All test cases passing
+   - App ready for production use
+
+---
+
+## QUESTIONS FOR THE IMPLEMENTING AI
+
+Before you start coding:
+
+1. **Have you reviewed the current codebase?** What's the file structure?
+2. **What permission handling is currently in place?** Which APIs are being used?
+3. **Why is the 3-dot menu not working?** Is it a React Native event handler issue or missing component?
+4. **Where is the .aiignore parser?** Why does it read files as binary?
+5. **Can you locate where the default /files section is hardcoded?**
+6. **Is the database schema properly storing transaction + snapshot links?**
+7. **What needs to be added for transaction revert capability?**
+
+---
+
+## TIMELINE & PRIORITY
+
+**CRITICAL (Must Fix Before Delivery):**
+- Permission handling (Android Expo Go)
+- Transaction revert/undo
+- 3-dot file menu
+
+**HIGH (Should Fix):**
+- .aiignore binary display issue
+- Default /files section removal
+
+**MEDIUM (Polish):**
+- Documentation updates
+- Error messages refinement
+- Testing on multiple devices
+
+---
+
+## NOTES
+
+- The app is **functional on web** — this is a good baseline for testing
+- **Android Expo Go** is the current blocker — permission system must work smoothly
+- **Transaction revert is a core feature** — without it, the ACID guarantee is incomplete
+- **Keep abstraction layer clean** — even though Google Drive isn't implemented yet, the storage interface should be ready for it
+
+---
+
+**Status: READY FOR AUDIT & FINAL IMPLEMENTATION**
