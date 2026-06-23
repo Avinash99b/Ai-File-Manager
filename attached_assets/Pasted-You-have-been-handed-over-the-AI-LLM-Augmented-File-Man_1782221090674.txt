@@ -1,0 +1,158 @@
+You have been handed over the AI LLM Augmented File Manager project 
+(React Native + Expo + Node.js backend).
+
+The app is PARTIALLY COMPLETE but has critical issues that must be fixed 
+before delivery. Your job is to:
+
+1. AUDIT the current implementation (investigate before coding)
+2. IDENTIFY root causes of the 5 issues listed below
+3. FIX all issues
+4. VERIFY everything works end-to-end
+5. DELIVER production-ready code
+
+---
+
+## CONTEXT DOCUMENT
+
+[INSERT THE FULL CONTEXT FROM: aifile_manager_context.md]
+
+---
+
+## YOUR WORKFLOW
+
+### STEP 1: AUDIT (Do this FIRST - do NOT code yet)
+- [ ] Request current codebase (all files, structure, file listing)
+- [ ] Review app.json, package.json, all React components
+- [ ] Check backend server setup (Node.js files)
+- [ ] Examine database schema (SQLite)
+- [ ] Identify where permissions are currently handled
+- [ ] Find the 3-dot menu component and trace why it's not working
+- [ ] Locate .aiignore parser and see why it treats files as binary
+- [ ] Search codebase for hardcoded "/files" path
+- [ ] Check transaction log schema - are snapshots linked?
+- [ ] Verify reverse action generation exists or needs to be built
+
+**Questions to Ask:**
+1. "Can you provide the complete current codebase structure (file tree)?"
+2. "What's the current permission handling code in the app?"
+3. "Where is the .aiignore parser implemented, and why does it show binary error?"
+4. "Can you show me the file menu component code - why isn't the 3-dot icon responding?"
+5. "What's the database schema for transactions and snapshots?"
+6. "Has transaction revert logic been started? If so, where?"
+
+### STEP 2: ROOT CAUSE ANALYSIS
+After reviewing the code, create a brief summary (per issue):
+
+**Issue 1: 3-Dot Menu Not Working**
+- Root cause: [your finding]
+- Fix required: [specific action]
+
+**Issue 2: .aiignore Binary Display**
+- Root cause: [your finding]
+- Fix required: [specific action]
+
+**Issue 3: Default /files Section**
+- Root cause: [your finding]
+- Fix required: [specific action]
+
+**Issue 4: Permission Issues on Android**
+- Root cause: [your finding]
+- Current implementation: [what's there now]
+- Fix required: [specific action]
+
+**Issue 5: Transaction Revert Not Implemented**
+- Root cause: [not implemented]
+- Implementation required: [specific components/functions]
+
+### STEP 3: IMPLEMENTATION PLAN
+Create a prioritized fix list:
+1. Permission system (blocks Android testing)
+2. Transaction revert (core feature)
+3. 3-dot menu (UX)
+4. .aiignore display (UX)
+5. /files hardcoding (cleanup)
+
+### STEP 4: CODE & FIX
+Implement fixes in priority order. For each:
+- Show the old code (what's broken)
+- Show the new code (fixed version)
+- Explain the fix
+- Test on both web and Android Expo Go
+
+### STEP 5: VERIFICATION CHECKLIST
+
+Before delivery, test EVERYTHING:
+
+**Permission System (Android Expo Go):**
+- [ ] Fresh Expo Go install - no crash on first load
+- [ ] App requests permissions once, handles "Always Allow" + "Allow" + "Deny"
+- [ ] Permission status cached (doesn't re-ask on app restart)
+- [ ] Graceful fallback if permissions denied (show helpful message)
+- [ ] Works on hot reload and cold start
+- [ ] Web version doesn't show permission dialogs
+
+**File Menu (3-Dot):**
+- [ ] Tap/click 3-dot on file - menu appears
+- [ ] Menu shows: Copy, Move, Delete, Rename, Properties, Open
+- [ ] Each option triggers correct action
+- [ ] Works on files and folders
+- [ ] Works on web, Android, iOS
+
+**.aiignore Display:**
+- [ ] .aiignore file contents display as TEXT (not binary)
+- [ ] Show rules in user-friendly list format
+- [ ] Support nested .aiignore hierarchies
+- [ ] Allow inline editing
+- [ ] Parse correctly (comments, negations, patterns)
+
+**Transaction Revert:**
+- [ ] Completed transaction shows "Undo" button
+- [ ] Click "Undo" shows confirmation with affected files
+- [ ] Confirm undo restores files from snapshot
+- [ ] Transaction marked as "reverted" in history
+- [ ] Works for all action types (rename, delete, move, etc.)
+- [ ] Can undo multiple times
+
+**General (All Platforms):**
+- [ ] No console errors or warnings in Expo Go
+- [ ] Search works (semantic + filename)
+- [ ] Action parser generates correct plans
+- [ ] Approval flow works
+- [ ] Snapshots created before transactions
+- [ ] Cloud storage layer abstracted (ready for Drive, not implemented)
+- [ ] README updated with setup instructions
+
+### STEP 6: DELIVERY
+Provide:
+1. **Fixed complete codebase** (all files)
+2. **Change summary** (what was changed and why)
+3. **Testing evidence** (screenshots/logs showing tests passing)
+4. **Setup instructions** (how to run on Expo Go)
+5. **Known limitations** (if any remain)
+6. **QA checklist** (mark all as passing)
+
+---
+
+## CRITICAL CONSTRAINTS
+
+1. **Expo Go Compatible**: All code must work in Expo Go on Android during development
+2. **Permission Handling**: Must use `expo-file-system` and `expo-permissions` APIs
+3. **No Breaking Changes**: Web version must still work
+4. **ACID Guarantees**: Transaction revert must be bulletproof
+5. **Clean Code**: Well-commented, no console warnings
+6. **Documentation**: Clear, concise, actionable
+
+---
+
+## TONE & EXPECTATIONS
+
+- Ask clarifying questions before fixing (don't assume)
+- Show your audit findings before coding
+- Be thorough - this is a final delivery
+- Test aggressively - this is production code
+- Provide clear explanations in comments
+- Make it obvious what was fixed and why
+
+---
+
+**READY? Start with STEP 1: AUDIT. Ask for the codebase and begin investigation.**
