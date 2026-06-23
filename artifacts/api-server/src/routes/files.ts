@@ -86,8 +86,15 @@ router.get("/files/content", (req, res) => {
   if (!fs.existsSync(full)) return res.status(404).json({ error: "File not found" });
 
   const stat = fs.statSync(full);
-  const mimeType = getMimeType(path.basename(filePath));
-  const isText = mimeType.startsWith("text/") || ["application/json", "application/javascript", "application/typescript", "application/yaml"].includes(mimeType);
+  const basename = path.basename(filePath);
+  const mimeType = getMimeType(basename);
+  // Dotfiles (e.g. .aiignore, .gitignore, .env) have no extension so getMimeType returns
+  // application/octet-stream, but they are always plain text.
+  const isDotfile = basename.startsWith(".") && !basename.slice(1).includes(".");
+  const isText =
+    isDotfile ||
+    mimeType.startsWith("text/") ||
+    ["application/json", "application/javascript", "application/typescript", "application/yaml", "application/xml"].includes(mimeType);
 
   const content = isText ? fs.readFileSync(full, "utf-8") : "[Binary file — cannot display]";
   return res.json({ content, path: filePath, size: stat.size, mimeType });

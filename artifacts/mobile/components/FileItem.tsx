@@ -13,6 +13,8 @@ interface FileItemProps {
   isSelected?: boolean;
   onPress: () => void;
   onLongPress?: () => void;
+  /** Called when the 3-dot menu icon is tapped on a file row */
+  onMenuPress?: () => void;
 }
 
 type MaterialIconName = React.ComponentProps<typeof MaterialIcons>["name"];
@@ -48,7 +50,10 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-export function FileItem({ name, type, size, modifiedAt, mimeType, isIndexed, isSelected, onPress, onLongPress }: FileItemProps) {
+export function FileItem({
+  name, type, size, modifiedAt, mimeType, isIndexed, isSelected,
+  onPress, onLongPress, onMenuPress,
+}: FileItemProps) {
   const colors = useColors();
   const { icon, iconColor } = type === "directory"
     ? { icon: "folder" as MaterialIconName, iconColor: "#BB86FC" }
@@ -56,7 +61,10 @@ export function FileItem({ name, type, size, modifiedAt, mimeType, isIndexed, is
 
   return (
     <TouchableOpacity
-      style={[styles.container, { backgroundColor: isSelected ? colors.primary + "22" : "transparent", borderColor: isSelected ? colors.primary + "44" : "transparent" }]}
+      style={[
+        styles.container,
+        { backgroundColor: isSelected ? colors.primary + "22" : "transparent", borderColor: isSelected ? colors.primary + "44" : "transparent" },
+      ]}
       onPress={onPress}
       onLongPress={onLongPress}
       activeOpacity={0.7}
@@ -79,7 +87,20 @@ export function FileItem({ name, type, size, modifiedAt, mimeType, isIndexed, is
           )}
         </View>
       </View>
-      <MaterialIcons name={type === "directory" ? "chevron-right" : "more-vert"} size={20} color={colors.mutedForeground} />
+
+      {type === "directory" ? (
+        <MaterialIcons name="chevron-right" size={20} color={colors.mutedForeground} />
+      ) : (
+        /* 3-dot menu — own TouchableOpacity so it doesn't fire the row's onPress */
+        <TouchableOpacity
+          style={styles.menuBtn}
+          onPress={onMenuPress}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          activeOpacity={0.5}
+        >
+          <MaterialIcons name="more-vert" size={20} color={colors.mutedForeground} />
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 }
@@ -93,4 +114,5 @@ const styles = StyleSheet.create({
   metaText: { fontSize: 11, fontFamily: "Inter_400Regular" },
   badge: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 },
   badgeText: { fontSize: 9, fontFamily: "Inter_500Medium" },
+  menuBtn: { padding: 4, borderRadius: 6 },
 });

@@ -22,6 +22,7 @@ export default function TransactionsScreen() {
     { color: colors.primary, label: "Pending" },
     { color: colors.warning, label: "Previewed" },
     { color: colors.danger, label: "Rejected" },
+    { color: colors.mutedForeground, label: "Reverted" },
   ];
 
   return (
@@ -37,7 +38,7 @@ export default function TransactionsScreen() {
           </View>
         </View>
         <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-          Review, approve, and track all file operations
+          Review, approve, and revert file operations
         </Text>
       </View>
 
@@ -67,6 +68,7 @@ export default function TransactionsScreen() {
               status={item.status}
               createdAt={item.createdAt}
               actionsCount={item.actions.length}
+              snapshotId={item.snapshotId}
             />
           )}
           ListHeaderComponent={

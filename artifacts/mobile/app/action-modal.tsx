@@ -1,7 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
@@ -28,10 +28,21 @@ export default function ActionModal() {
   const router = useRouter();
   const { setPendingPlan } = useTransaction();
   const { getLLMConfigForRequest, apiKey, settings } = useSettings();
-  const [command, setCommand] = useState("");
+  const topInset = Platform.OS === "web" ? Math.max(insets.top, 20) : insets.top;
+
+  // Accept an optional prefill param from the file context menu
+  const { prefill } = useLocalSearchParams<{ prefill?: string }>();
+
+  const [command, setCommand] = useState(prefill ?? "");
   const [parsedPlan, setParsedPlan] = useState<ActionPlan | null>(null);
   const inputRef = useRef<TextInput>(null);
-  const topInset = Platform.OS === "web" ? Math.max(insets.top, 20) : insets.top;
+
+  // When a prefill is provided, focus the input so the user can finish the command
+  useEffect(() => {
+    if (prefill) {
+      setTimeout(() => inputRef.current?.focus(), 300);
+    }
+  }, [prefill]);
 
   const parseMutation = useParseAction({
     mutation: {
@@ -87,7 +98,7 @@ export default function ActionModal() {
 
       <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.section}>
-          <View style={[styles.inputWrap, { backgroundColor: colors.surface, borderColor: parsedPlan ? colors.secondary : colors.border }]}>
+          <View style={[styles.inputWrap, { backgroundColor: colors.surface, borderColor: parsedPlan ? colors.secondary : (prefill && !parsedPlan ? colors.primary : colors.border) }]}>
             <TextInput
               ref={inputRef}
               style={[styles.input, { color: colors.foreground }]}
@@ -101,7 +112,16 @@ export default function ActionModal() {
             />
           </View>
 
-          {!isUsingLLM && (
+          {prefill && !parsedPlan && (
+            <View style={[styles.hintBox, { backgroundColor: colors.primary + "11", borderColor: colors.primary + "33" }]}>
+              <MaterialIcons name="edit" size={14} color={colors.primary} />
+              <Text style={[styles.hintText, { color: colors.mutedForeground }]}>
+                Complete the command above, then tap Parse to generate an action plan.
+              </Text>
+            </View>
+          )}
+
+          {!isUsingLLM && !prefill && (
             <View style={[styles.hintBox, { backgroundColor: colors.warning + "11", borderColor: colors.warning + "33" }]}>
               <MaterialIcons name="lightbulb-outline" size={14} color={colors.warning} />
               <Text style={[styles.hintText, { color: colors.mutedForeground }]}>

@@ -264,6 +264,31 @@ paths:
                     type: string
                 required: [status]
 
+  /transactions/{id}/revert:
+    post:
+      operationId: revertTransaction
+      tags: [transactions]
+      summary: Revert a completed transaction by restoring its snapshot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Revert result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  filesRestored:
+                    type: number
+                required: [status, filesRestored]
+
   /transactions/{id}/reject:
     post:
       operationId: rejectTransaction
@@ -502,7 +527,7 @@ components:
           type: string
         status:
           type: string
-          enum: [pending, previewed, approved, rejected, completed, failed]
+          enum: [pending, previewed, approved, rejected, completed, failed, reverted]
         command:
           type: string
         actionsSummary:

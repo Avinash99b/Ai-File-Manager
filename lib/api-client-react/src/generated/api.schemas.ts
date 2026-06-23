@@ -133,6 +133,7 @@ export const TransactionStatus = {
   rejected: 'rejected',
   completed: 'completed',
   failed: 'failed',
+  reverted: 'reverted',
 } as const;
 
 export interface Transaction {
@@ -227,6 +228,11 @@ export type ListTransactions200 = {
 export type ApproveTransaction200 = {
   status: string;
   snapshotId?: string;
+};
+
+export type RevertTransaction200 = {
+  status: string;
+  filesRestored: number;
 };
 
 export type RejectTransaction200 = {

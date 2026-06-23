@@ -38,6 +38,7 @@ import type {
   PreviewResult,
   RejectTransaction200,
   RestoreSnapshot200,
+  RevertTransaction200,
   SearchFiles200,
   SearchRequest,
   Transaction
@@ -806,6 +807,76 @@ export const useApproveTransaction = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getApproveTransactionMutationOptions(options));
+    }
+
+export const getRevertTransactionUrl = (id: string,) => {
+
+
+
+
+  return `/api/transactions/${id}/revert`
+}
+
+/**
+ * @summary Revert a completed transaction by restoring its snapshot
+ */
+export const revertTransaction = async (id: string, options?: RequestInit): Promise<RevertTransaction200> => {
+
+  return customFetch<RevertTransaction200>(getRevertTransactionUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRevertTransactionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revertTransaction>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revertTransaction>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['revertTransaction'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revertTransaction>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  revertTransaction(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevertTransactionMutationResult = NonNullable<Awaited<ReturnType<typeof revertTransaction>>>
+
+    export type RevertTransactionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Revert a completed transaction by restoring its snapshot
+ */
+export const useRevertTransaction = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revertTransaction>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revertTransaction>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getRevertTransactionMutationOptions(options));
     }
 
 export const getRejectTransactionUrl = (id: string,) => {

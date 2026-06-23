@@ -172,7 +172,7 @@ export const ListTransactionsResponse = zod.object({
   "id": zod.string(),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
-  "status": zod.enum(['pending', 'previewed', 'approved', 'rejected', 'completed', 'failed']),
+  "status": zod.enum(['pending', 'previewed', 'approved', 'rejected', 'completed', 'failed', 'reverted']),
   "command": zod.string(),
   "actionsSummary": zod.string(),
   "actions": zod.array(zod.object({
@@ -207,7 +207,7 @@ export const GetTransactionResponse = zod.object({
   "id": zod.string(),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
-  "status": zod.enum(['pending', 'previewed', 'approved', 'rejected', 'completed', 'failed']),
+  "status": zod.enum(['pending', 'previewed', 'approved', 'rejected', 'completed', 'failed', 'reverted']),
   "command": zod.string(),
   "actionsSummary": zod.string(),
   "actions": zod.array(zod.object({
@@ -240,6 +240,19 @@ export const ApproveTransactionParams = zod.object({
 export const ApproveTransactionResponse = zod.object({
   "status": zod.string(),
   "snapshotId": zod.string().optional()
+})
+
+
+/**
+ * @summary Revert a completed transaction by restoring its snapshot
+ */
+export const RevertTransactionParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const RevertTransactionResponse = zod.object({
+  "status": zod.string(),
+  "filesRestored": zod.number()
 })
 
 

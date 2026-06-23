@@ -1,13 +1,22 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useFileManager } from "@/context/FileManagerContext";
 import { FileItem } from "@/components/FileItem";
+import { FileContextMenu } from "@/components/FileContextMenu";
 import { useListFiles, useIndexDirectory } from "@workspace/api-client-react";
+
+interface SelectedFile {
+  name: string;
+  path: string;
+  size: number;
+  modifiedAt: string;
+  mimeType?: string;
+}
 
 export default function FilesScreen() {
   const colors = useColors();
@@ -16,6 +25,8 @@ export default function FilesScreen() {
   const { currentPath, navigateTo, goBack, isIndexed, setIsIndexed } = useFileManager();
   const topInset = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
 
+  const [menuFile, setMenuFile] = useState<SelectedFile | null>(null);
+
   const { data, isLoading, refetch } = useListFiles(
     { path: currentPath },
     { query: { refetchOnWindowFocus: false } },
@@ -23,7 +34,7 @@ export default function FilesScreen() {
 
   const indexMutation = useIndexDirectory({
     mutation: {
-      onSuccess: (result) => {
+      onSuccess: () => {
         setIsIndexed(true);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       },
@@ -37,14 +48,27 @@ export default function FilesScreen() {
     [navigateTo],
   );
 
-  const handleOpenAction = () => {
+  const handleOpenAction = (prefill?: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push("/action-modal");
+    if (prefill) {
+      router.push({ pathname: "/action-modal", params: { prefill } });
+    } else {
+      router.push("/action-modal");
+    }
   };
+
+  const handleMenuPress = useCallback((file: SelectedFile) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setMenuFile(file);
+  }, []);
 
   const isRoot = currentPath === "/" || currentPath === "";
   const files = data?.files ?? [];
   const tabBarHeight = Platform.OS === "web" ? 84 : insets.bottom + 64;
+
+  // Display the current path in a user-friendly way.
+  // Server stores files under filesDir internally — we show just the logical path.
+  const displayPath = isRoot ? "/" : currentPath;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -77,9 +101,7 @@ export default function FilesScreen() {
             <MaterialIcons name="settings" size={24} color={colors.mutedForeground} />
           </TouchableOpacity>
         </View>
-        <Text style={[styles.pathText, { color: colors.mutedForeground }]}>
-          {currentPath === "/" ? "/files" : `/files${currentPath}`}
-        </Text>
+        <Text style={[styles.pathText, { color: colors.mutedForeground }]}>{displayPath}</Text>
       </View>
 
       {/* File list */}
@@ -106,6 +128,15 @@ export default function FilesScreen() {
               mimeType={item.mimeType}
               isIndexed={item.isIndexed}
               onPress={() => handleFilePress(item)}
+              onMenuPress={item.type === "file"
+                ? () => handleMenuPress({
+                    name: item.name,
+                    path: item.path,
+                    size: item.size,
+                    modifiedAt: item.modifiedAt,
+                    mimeType: item.mimeType,
+                  })
+                : undefined}
             />
           )}
           ItemSeparatorComponent={() => <View style={[styles.sep, { backgroundColor: colors.border }]} />}
@@ -118,7 +149,7 @@ export default function FilesScreen() {
       {/* AI command bar */}
       <TouchableOpacity
         style={[styles.commandBar, { backgroundColor: colors.surface, borderColor: colors.primary + "55", bottom: tabBarHeight + 12 }]}
-        onPress={handleOpenAction}
+        onPress={() => handleOpenAction()}
         activeOpacity={0.9}
       >
         <View style={[styles.commandIcon, { backgroundColor: colors.primary }]}>
@@ -131,6 +162,23 @@ export default function FilesScreen() {
           <MaterialIcons name="send" size={18} color={colors.primary} />
         </View>
       </TouchableOpacity>
+
+      {/* File context menu */}
+      {menuFile && (
+        <FileContextMenu
+          visible={!!menuFile}
+          fileName={menuFile.name}
+          filePath={menuFile.path}
+          fileSize={menuFile.size}
+          modifiedAt={menuFile.modifiedAt}
+          mimeType={menuFile.mimeType}
+          onClose={() => setMenuFile(null)}
+          onPrefillCommand={(command) => {
+            setMenuFile(null);
+            handleOpenAction(command);
+          }}
+        />
+      )}
     </View>
   );
 }

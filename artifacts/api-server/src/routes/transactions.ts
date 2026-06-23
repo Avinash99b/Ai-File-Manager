@@ -6,6 +6,7 @@ import {
   commitTransaction,
   cleanupTmp,
   setupTmpDir,
+  restoreSnapshot,
 } from "../lib/transactions";
 import { logger } from "../lib/logger";
 
@@ -71,6 +72,29 @@ router.post("/transactions/:id/approve", (req, res) => {
     logger.error({ err, transactionId: row.id }, "Transaction commit failed");
     updateTransaction(row.id, { status: "failed" });
     return res.status(500).json({ error: "Transaction failed", details: String(err) });
+  }
+});
+
+router.post("/transactions/:id/revert", (req, res) => {
+  const row = getTransaction(req.params.id);
+  if (!row) return res.status(404).json({ error: "Transaction not found" });
+
+  if (row.status !== "completed") {
+    return res.status(400).json({ error: "Only completed transactions can be reverted" });
+  }
+
+  if (!row.snapshot_id) {
+    return res.status(400).json({ error: "Transaction has no linked snapshot — cannot revert" });
+  }
+
+  try {
+    const filesRestored = restoreSnapshot(row.snapshot_id);
+    updateTransaction(row.id, { status: "reverted" });
+    logger.info({ transactionId: row.id, snapshotId: row.snapshot_id, filesRestored }, "Transaction reverted");
+    return res.json({ status: "reverted", filesRestored });
+  } catch (err) {
+    logger.error({ err, transactionId: row.id }, "Transaction revert failed");
+    return res.status(500).json({ error: "Revert failed", details: String(err) });
   }
 });
 

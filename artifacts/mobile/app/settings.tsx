@@ -211,7 +211,6 @@ export default function SettingsScreen() {
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionResult, setConnectionResult] = useState<"success" | "error" | null>(null);
 
-  const [storagePermission, setStoragePermission] = useState<"granted" | "denied" | "undetermined" | "checking">("checking");
   const [aiignoreContent, setAiignoreContent] = useState("");
   const [aiignoreLoading, setAiignoreLoading] = useState(false);
 
@@ -222,23 +221,6 @@ export default function SettingsScreen() {
       onSuccess: (r) => Alert.alert("Index Rebuilt", `${r.filesIndexed} files indexed`),
     },
   });
-
-  // Load permissions on mount
-  useEffect(() => {
-    if (Platform.OS === "android") {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const MediaLibrary = require("expo-media-library") as typeof import("expo-media-library");
-        MediaLibrary.getPermissionsAsync()
-          .then((r) => setStoragePermission(r.granted ? "granted" : r.status === "denied" ? "denied" : "undetermined"))
-          .catch(() => setStoragePermission("undetermined"));
-      } catch {
-        setStoragePermission("undetermined");
-      }
-    } else {
-      setStoragePermission("granted");
-    }
-  }, []);
 
   // Sync apiKeyInput when apiKey changes
   useEffect(() => { setApiKeyInput(apiKey); }, [apiKey]);
@@ -285,19 +267,6 @@ export default function SettingsScreen() {
       setTestingConnection(false);
     }
   }, [apiKeyInput, settings.llm]);
-
-  const handleRequestStorage = useCallback(async () => {
-    if (storagePermission === "denied") { Linking.openSettings(); return; }
-    if (Platform.OS !== "android") { Linking.openSettings(); return; }
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const MediaLibrary = require("expo-media-library") as typeof import("expo-media-library");
-      const result = await MediaLibrary.requestPermissionsAsync();
-      setStoragePermission(result.granted ? "granted" : "denied");
-    } catch {
-      Linking.openSettings();
-    }
-  }, [storagePermission]);
 
   const handleLoadAiignore = useCallback(async () => {
     setAiignoreLoading(true);
@@ -523,38 +492,23 @@ export default function SettingsScreen() {
         </Section>
 
         {/* 3. File Permissions */}
-        {Platform.OS !== "web" && (
-          <Section title="File Permissions" icon="security">
-            <PermissionCard
-              label="Storage Access"
-              description="Required to read and write files"
-              status={storagePermission}
-              onRequest={handleRequestStorage}
-            />
-            <View style={[permStyles.card, { borderColor: colors.border }]}>
-              <View style={permStyles.info}>
-                <Text style={[permStyles.label, { color: colors.foreground }]}>All Files Access</Text>
-                <Text style={[permStyles.desc, { color: colors.mutedForeground }]}>MANAGE_ALL_FILES — for Android 11+ full filesystem access</Text>
-                <View style={permStyles.statusRow}>
-                  <MaterialIcons name="info-outline" size={14} color={colors.warning} />
-                  <Text style={[permStyles.statusText, { color: colors.warning }]}>Requires manual grant</Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={[permStyles.btn, { backgroundColor: colors.warning }]}
-                onPress={() => Linking.openSettings()}
-              >
-                <Text style={[permStyles.btnText, { color: "#000" }]}>Open Settings</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={[innerStyles.infoBox, { backgroundColor: colors.primary + "11", borderColor: colors.primary + "33", margin: 12 }]}>
-              <MaterialIcons name="info-outline" size={16} color={colors.primary} />
-              <Text style={[innerStyles.infoText, { color: colors.mutedForeground }]}>
-                Storage permissions are required to browse, index, and manage files on your device.
-              </Text>
-            </View>
-          </Section>
-        )}
+        <Section title="File Permissions" icon="security">
+          {/* This app manages files on the server — no device storage permission is needed.
+              All file operations go through the backend API (Node.js), so the Expo client
+              itself never reads or writes the device filesystem. */}
+          <PermissionCard
+            label="Server-side File Access"
+            description="Files are managed by the backend API — no device storage permission required"
+            status="granted"
+            onRequest={() => {}}
+          />
+          <View style={[innerStyles.infoBox, { backgroundColor: colors.primary + "11", borderColor: colors.primary + "33", margin: 12, marginTop: 0 }]}>
+            <MaterialIcons name="info-outline" size={16} color={colors.primary} />
+            <Text style={[innerStyles.infoText, { color: colors.mutedForeground }]}>
+              All file operations run on the Node.js backend. The mobile app only makes API calls — it never touches your device storage directly, so no Android/iOS storage permissions are needed.
+            </Text>
+          </View>
+        </Section>
 
         {/* 4. Backup & Snapshots */}
         <Section title="Backup & Snapshots" icon="backup">
