@@ -1,0 +1,474 @@
+You are continuing work on this React Native + Expo application.
+
+CRITICAL REQUIREMENT:
+
+This application is being converted into a REAL ANDROID FILE MANAGER.
+
+The application must no longer use a server-side filesystem, backend filesystem, API-backed filesystem, mock filesystem, virtual filesystem, or remote storage abstraction.
+
+The filesystem shown in the UI must be the ACTUAL Android device filesystem.
+
+The user must be able to install an APK generated through EAS Build and directly browse, manage, and manipulate files stored on the Android device.
+
+Do not preserve existing server-side filesystem architecture merely because it already works.
+
+Audit the entire codebase and remove any architecture that prevents true device-side filesystem access.
+
+──────────────────────────────
+ARCHITECTURE MIGRATION
+──────────────────────────────
+
+Current state appears to use:
+
+* Backend filesystem APIs
+* /api/files routes
+* Server-side file operations
+* Filesystem abstraction layer
+
+These must be audited.
+
+Determine whether each component should be:
+
+* Removed
+* Replaced
+* Refactored
+* Retained
+
+The final architecture should perform filesystem operations directly on Android storage.
+
+No backend should be required for file management functionality.
+
+The application must remain functional while offline.
+
+No network connection should be required for browsing files.
+
+──────────────────────────────
+EAS BUILD MIGRATION
+──────────────────────────────
+
+Convert project to proper EAS Build workflow.
+
+Requirements:
+
+1. Configure EAS Build.
+2. Create all required EAS configuration.
+3. Verify Android APK generation.
+4. Verify installable APK output.
+5. Verify development builds.
+6. Verify release builds.
+7. Verify Android native modules compatibility.
+8. Remove Expo Go assumptions where necessary.
+9. Document exact build commands.
+
+Provide:
+
+* eas.json updates
+* app.json/app.config updates
+* Android permission configuration
+* Build instructions
+* Device testing instructions
+
+──────────────────────────────
+ANDROID FILESYSTEM ACCESS
+──────────────────────────────
+
+The application should behave similarly to:
+
+* Solid Explorer
+* Material Files
+* Amaze File Manager
+* MiXplorer
+
+The application must directly access Android storage.
+
+Audit and determine the correct implementation approach.
+
+Evaluate:
+
+OPTION A:
+Storage Access Framework (SAF)
+
+OPTION B:
+MANAGE_EXTERNAL_STORAGE
+
+OPTION C:
+Hybrid SAF + Full Access
+
+Choose the most appropriate architecture.
+
+Explain:
+
+* Benefits
+* Limitations
+* Android version compatibility
+* Play Store implications
+
+If MANAGE_EXTERNAL_STORAGE is selected:
+
+Implement:
+
+* Manifest permissions
+* Runtime permission checks
+* Settings redirection flow
+* Permission status UI
+* Graceful denial handling
+
+Verify operation on Android 11+.
+
+──────────────────────────────
+ANDROID PERMISSIONS AUDIT
+──────────────────────────────
+
+Audit all permissions.
+
+Verify:
+
+Android 11
+Android 12
+Android 13
+Android 14
+Android 15
+Android 16
+
+Ensure:
+
+* Correct manifest entries
+* Correct runtime requests
+* Proper user messaging
+* No crashes when denied
+* No unnecessary permissions
+
+Every permission must have a justification.
+
+──────────────────────────────
+REMOVE SERVER FILESYSTEM DEPENDENCY
+──────────────────────────────
+
+Any feature currently relying on:
+
+* Backend file reads
+* Backend file writes
+* API filesystem endpoints
+* Remote file manipulation
+
+must be migrated.
+
+The final application should not require:
+
+GET /files
+POST /files
+PATCH /files
+DELETE /files
+
+or any equivalent backend route for local file operations.
+
+Device storage should become the source of truth.
+
+The backend may only remain for unrelated functionality.
+
+──────────────────────────────
+FILE EXPLORER IMPROVEMENTS
+──────────────────────────────
+
+MULTI-SELECT MODE
+
+When long-pressing a file:
+
+1. Enter selection mode.
+2. Highlight selected item.
+3. Show selected count.
+4. Show top action bar.
+
+Required actions:
+
+* Select All
+* Deselect All
+* Delete
+* Move
+* Copy
+* Share
+* Properties
+* Rename (single item only)
+* Cancel Selection
+
+Selection mode should persist until explicitly exited.
+
+──────────────────────────────
+FOLDER LONG PRESS
+──────────────────────────────
+
+Folders must behave exactly like files.
+
+Long pressing a folder should display:
+
+* Open
+* Rename
+* Move
+* Copy
+* Delete
+* Properties
+* Select
+
+Folder interaction must be consistent with file interaction.
+
+──────────────────────────────
+OVERFLOW MENU
+──────────────────────────────
+
+Every file row and folder row must support:
+
+Tap:
+
+* Open
+
+Long Press:
+
+* Select / Context actions
+
+Three Dot Menu:
+
+* Context actions
+
+Behavior must remain consistent.
+
+──────────────────────────────
+FILE OPERATIONS
+──────────────────────────────
+
+Implement:
+
+Files:
+
+* Create
+* Rename
+* Copy
+* Move
+* Delete
+* Share
+
+Folders:
+
+* Create
+* Rename
+* Copy
+* Move
+* Delete
+
+Bulk:
+
+* Copy
+* Move
+* Delete
+
+Support:
+
+* Single item
+* Multiple items
+* Large batches
+
+──────────────────────────────
+PROPERTIES DIALOG
+──────────────────────────────
+
+Files:
+
+Show:
+
+* Name
+* Full path
+* Extension
+* MIME type
+* Size
+* Created date
+* Modified date
+* Permissions (where available)
+
+Folders:
+
+Show:
+
+* Name
+* Full path
+* Item count
+* Folder size (where feasible)
+* Modified date
+
+──────────────────────────────
+FILE PREVIEW SYSTEM
+──────────────────────────────
+
+Implement previews for:
+
+Text:
+
+* txt
+* md
+* json
+* yaml
+* xml
+* log
+* ini
+* env
+* aiignore
+* gitignore
+
+Code:
+
+* js
+* ts
+* jsx
+* tsx
+* py
+* java
+* cpp
+* c
+* rs
+* go
+* php
+
+Documents:
+
+* PDF preview support if feasible
+
+Images:
+
+* jpg
+* jpeg
+* png
+* webp
+* gif
+
+Fallback:
+
+* Unknown file type screen
+
+Dotfiles must never be treated as binary solely because they lack an extension.
+
+──────────────────────────────
+SEARCH
+──────────────────────────────
+
+Implement:
+
+* Current folder search
+* Recursive search
+* Filename search
+* Extension search
+
+Optional:
+
+* Content search for text files
+
+──────────────────────────────
+SORTING
+──────────────────────────────
+
+Add:
+
+Sort by:
+
+* Name
+* Size
+* Type
+* Modified Date
+
+Support:
+
+* Ascending
+* Descending
+
+Persist user preference.
+
+──────────────────────────────
+PERFORMANCE REQUIREMENTS
+──────────────────────────────
+
+Optimize for:
+
+* Thousands of files
+* Deep folder trees
+* Large folders
+
+Requirements:
+
+* Virtualized lists
+* Lazy loading
+* Memoization
+* Minimal re-renders
+* Fast navigation
+
+Avoid UI freezes.
+
+──────────────────────────────
+SETTINGS SCREEN
+──────────────────────────────
+
+Display:
+
+Filesystem Access Status:
+
+* Granted
+* Denied
+* Limited
+
+Display:
+
+* Android storage mode
+* Current permission state
+* Android version
+* Storage root locations
+
+Provide:
+
+* Request Permission button
+* Open Android Settings button
+
+──────────────────────────────
+QA AND VALIDATION
+──────────────────────────────
+
+Do not stop after coding.
+
+Perform a complete audit.
+
+For every implemented feature provide:
+
+1. Root cause analysis.
+2. Files modified.
+3. Reason for modification.
+4. Verification method.
+5. Remaining limitations.
+
+Produce a final report.
+
+──────────────────────────────
+FINAL VERIFICATION CHECKLIST
+──────────────────────────────
+
+Verify and explicitly report:
+
+□ EAS build configuration complete
+□ APK generation verified
+□ APK installation verified
+□ Android permissions verified
+□ Runtime permission flow verified
+□ Settings redirection verified
+□ Real Android filesystem access verified
+□ No backend dependency for local files
+□ Multi-select verified
+□ Folder long-press verified
+□ Overflow menu verified
+□ Bulk delete verified
+□ Bulk move verified
+□ Bulk copy verified
+□ Properties dialog verified
+□ File preview verified
+□ Dotfile rendering verified
+□ Search verified
+□ Sorting verified
+□ Offline functionality verified
+□ Large directory performance verified
+
+Do not provide a code-only response.
+
+Provide a full implementation report, architecture audit, migration summary, verification report, QA checklist, and any remaining risks or platform limitations.
